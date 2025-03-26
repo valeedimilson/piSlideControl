@@ -1,0 +1,5 @@
+Flask
+qrcode
+pyautogui
+pynput
+pillow
