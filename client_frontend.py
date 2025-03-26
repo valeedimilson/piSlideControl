@@ -1,0 +1,246 @@
+from flask import Flask, request, jsonify, send_file, render_template_string, redirect, url_for
+import secrets
+import platform
+import pyautogui
+import time
+from datetime import datetime
+
+app = Flask(__name__)
+
+
+
+class token:
+    def randomToken():
+        return secrets.token_urlsafe(16)
+    def set_token():
+        return token
+
+server_port = 5000
+connected_devices = {}
+
+# Configuração cross-platform
+if platform.system() == 'Darwin':
+    from pynput.keyboard import Controller
+    keyboard = Controller()
+else:
+    keyboard = None
+
+
+def send_key(key):
+    try:
+        if keyboard:
+            with keyboard.pressed(key):
+                time.sleep(0.1)
+        else:
+            pyautogui.press(key)
+        return True
+    except Exception as e:
+        print(f"Erro ao enviar tecla: {e}")
+        return False
+
+
+def update_device_activity(ip):
+    now = datetime.now()
+    if ip not in connected_devices:
+        connected_devices[ip] = {
+            'connection_time': now,
+            'last_active': now
+        }
+    else:
+        connected_devices[ip]['last_active'] = now
+
+
+@app.route('/')
+def control():
+    token = request.args.get('token')
+    ip = request.remote_addr
+
+    if token != current_token:
+        return "Token inválido ou expirado!", 403
+
+    return render_template_string('''
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Controle de Slides</title>
+            <style>
+                body {
+                    margin: 0;
+                    padding: 0;
+                    font-family: Arial, sans-serif;
+                    touch-action: manipulation;
+                }
+                .control-container {
+                    display: flex;
+                    flex-direction: column;
+                    height: 100dvh;
+                }
+                .btn-row {
+                    display: flex;
+                    flex: 1;
+                }
+                .btn {
+                    flex: 1;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    font-size: 24px;
+                    background: #2196F3;
+                    color: white;
+                    border: none;
+                    margin: 5px;
+                    border-radius: 10px;
+                    cursor: pointer;
+                    user-select: none;
+                    -webkit-tap-highlight-color: transparent;
+                }
+                .btn:active {
+                    background: #0b7dda;
+                    transform: scale(0.98);
+                }
+                .btn-full {
+                    flex-basis: 100%;
+                }
+                .btn-prev {
+                    background: #4CAF50;
+                }
+                .btn-next {
+                    background: #2196F3;
+                }
+                .btn-fs {
+                    background: #FF9800;
+                }
+                .btn-exit {
+                    background: #f44336;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="control-container">
+                
+                <div class="btn-row">
+                    <button class="btn btn-fs" onclick="fullscreen()">Tela Cheia (F5)</button>
+                    <button class="btn btn-exit" onclick="exitFullscreen2()">Sair (ESC)</button>
+                </div>
+                                  <div class="btn-row">
+                    <button class="btn btn-prev" onclick="previousSlide()">← Anterior</button>
+                    <button class="btn btn-next" onclick="nextSlide()">Próximo →</button>
+                </div>
+            </div>
+            <script>
+                const token = new URLSearchParams(window.location.search).get('token');
+                
+                function ping() {
+                    fetch(`/ping?token=${token}`, { method: 'POST' })
+                        .catch(err => console.log('Ping error:', err));
+                }
+                
+                // Envia ping a cada 30 segundos
+                setInterval(ping, 30000);
+                
+                function handleResponse(response) {
+                    if (!response.ok) throw new Error('Erro na comunicação');
+                    return response.json();
+                }
+                
+                function nextSlide() {
+                    fetch(`/next?token=${token}`, { method: 'POST' })
+                        .then(handleResponse)
+                        .catch(err => alert('Erro: ' + err));
+                }
+                
+                function previousSlide() {
+                    fetch(`/previous?token=${token}`, { method: 'POST' })
+                        .then(handleResponse)
+                        .catch(err => alert('Erro: ' + err));
+                }
+                
+                function fullscreen() {
+                    fetch(`/fullscreen?token=${token}`, { method: 'POST' })
+                        .then(handleResponse)
+                        .catch(err => alert('Erro: ' + err));
+                }
+                
+                function exitFullscreen2() {
+                    fetch(`/exit-fullscreen?token=${token}`, { method: 'POST' })
+                        .then(handleResponse)
+                        .catch(err => alert('Erro: ' + err));
+                }
+                
+                // Atualiza status a cada segundo
+                setInterval(() => {
+                    const now = new Date();
+                    document.getElementById('status').innerText = 
+                        `Conectado em: ${now.toLocaleTimeString()}`;
+                }, 1000);
+            </script>
+        </body>
+        </html>
+    ''', now=datetime.now())
+
+
+@app.route('/next', methods=['POST'])
+def next_slide():
+    ip = request.remote_addr
+
+    token = request.args.get('token')
+    if token != current_token:
+        return jsonify(success=False, error="Token inválido"), 403
+
+    update_device_activity(ip)
+    success = send_key('right') or send_key('space')
+    return jsonify(success=success)
+
+
+@app.route('/previous', methods=['POST'])
+def previous_slide():
+    ip = request.remote_addr
+
+    token = request.args.get('token')
+    if token != current_token:
+        return jsonify(success=False, error="Token inválido"), 403
+
+    update_device_activity(ip)
+    success = send_key('left')
+    return jsonify(success=success)
+
+
+@app.route('/fullscreen', methods=['POST'])
+def fullscreen():
+    ip = request.remote_addr
+
+    token = request.args.get('token')
+    if token != current_token:
+        return jsonify(success=False, error="Token inválido"), 403
+
+    update_device_activity(ip)
+    try:
+        pyautogui.press('f5')
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+
+@app.route('/exit-fullscreen', methods=['POST'])
+def exit_fullscreen():
+    ip = request.remote_addr
+
+    token = request.args.get('token')
+    if token != current_token:
+        return jsonify(success=False, error="Token inválido"), 403
+
+    update_device_activity(ip)
+    try:
+        pyautogui.press('esc')
+        return jsonify(success=True)
+    except Exception as e:
+        return jsonify(success=False, error=str(e)), 500
+
+
+def run_server():
+    app.run(host='0.0.0.0', port=server_port, debug=False)
+
+
+if __name__ == "__main__":
+    run_server()

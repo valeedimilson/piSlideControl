@@ -3,3 +3,5 @@ qrcode
 pyautogui
 pynput
 pillow
+kivy
+kivymd
