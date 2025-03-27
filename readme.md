@@ -33,7 +33,7 @@ Controle apresentações de slides remotamente via navegador ou dispositivo móv
 3. Inicie o ambiente virtual do python:
    ```bash
    cd piSlideControl
-   /Scripts/activate
+   Scripts\activate
    ```   
 
 4. Instale as dependências:
@@ -60,7 +60,7 @@ Controle apresentações de slides remotamente via navegador ou dispositivo móv
 ## 📦 Build Executável
 Para criar uma versão standalone:
 ```bash
-pyinstaller --clean --onefile --icon=icon.ico --name piSlideControl --strip main.py --add-data "icon.ico;."
+pyinstaller --clean --onefile --noconsole --icon=icon.ico --name piSlideControl --strip main.py --add-data "icon.ico;."
 ```
 
 ## ⚠️ Notas Importantes

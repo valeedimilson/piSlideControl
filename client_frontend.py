@@ -1,9 +1,8 @@
 from flask import Flask, request, jsonify,  render_template_string
 import secrets
-import platform
 import pyautogui
-import time
 from datetime import datetime
+from waitress import serve
 
 app = Flask(__name__)
 
@@ -18,14 +17,6 @@ current_token = estado.token  # Valor inicial
 
 server_port = 5000
 connected_devices = {}
-
-# Configuração cross-platform
-if platform.system() == 'Darwin':
-    from pynput.keyboard import Controller
-    keyboard = Controller()
-else:
-    keyboard = None
-
 
 def randomToken():
     return secrets.token_urlsafe(16)
@@ -45,12 +36,8 @@ def get_current_token():
 
 
 def send_key(key):
-    try:
-        if keyboard:
-            with keyboard.pressed(key):
-                time.sleep(0.1)
-        else:
-            pyautogui.press(key)
+    try:       
+        pyautogui.press(key)
         return True
     except Exception as e:
         print(f"Erro ao enviar tecla: {e}")
@@ -81,6 +68,8 @@ def control():
         <!DOCTYPE html>
         <html lang="pt-br">
         <head>
+            <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
             <title>piSlideControl - dimi(github.com/valeedimilson)</title>
@@ -252,7 +241,8 @@ def ping():
 
 
 def run_server():
-    app.run(host='0.0.0.0', port=server_port, debug=False)
+    # app.run(host='0.0.0.0', port=server_port, debug=False)
+    serve(app, host="0.0.0.0", port=server_port)
 
 
 if __name__ == "__main__":
