@@ -3,7 +3,8 @@
 
 Controle apresentações de slides remotamente via navegador ou dispositivo móvel, utilizando um QR Code ou link seguro com autenticação por token.
 
-![Demo Interface](https://via.placeholder.com/400x600/EEE/000?text=Interface+QR+Code+e+Controles) <!-- Adicione uma imagem real posteriormente -->
+![Interface Server _ QRCODE ](imgs/print_win_qrcode.png)
+![Interface Smartphone _ Botões de ações ](imgs/print_smartphone_interface.png)
 
 ## ✨ Funcionalidades
 - Controle slides (Anterior/Próximo)
