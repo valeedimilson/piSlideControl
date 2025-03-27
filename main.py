@@ -3,7 +3,7 @@ import socket
 import webbrowser
 import threading
 import tkinter as tk
-from tkinter import Label, Button, PhotoImage
+from tkinter import Label, Button
 from PIL import Image, ImageTk
 from client_frontend import run_server, update_token, get_current_token
 
@@ -18,7 +18,7 @@ class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("piSlideControl by Dimi (github.com/valeedimilson)")
-        self.root.iconbitmap("icon.ico")
+        #self.root.iconbitmap("./icon.ico")
         self.root.configure(bg='black')
         self.root.geometry("440x550")
 

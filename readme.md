@@ -60,7 +60,7 @@ Controle apresentações de slides remotamente via navegador ou dispositivo móv
 ## 📦 Build Executável
 Para criar uma versão standalone:
 ```bash
-pyinstaller --clean --onefile --noconsole --icon=icon.ico --name piSlideControl --strip main.py --add-data "icon.ico;."
+pyinstaller --clean --onefile --noconsole --add-data "icon.ico;." --icon=icon.ico --name piSlideControl main.py
 ```
 
 ## ⚠️ Notas Importantes
