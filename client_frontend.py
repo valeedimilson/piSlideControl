@@ -1,4 +1,4 @@
-from flask import Flask, request, jsonify, send_file, render_template_string, redirect, url_for
+from flask import Flask, request, jsonify,  render_template_string
 import secrets
 import platform
 import pyautogui
@@ -8,12 +8,13 @@ from datetime import datetime
 app = Flask(__name__)
 
 
+class Estado:
+    def __init__(self):
+        self.token = secrets.token_urlsafe(16)
 
-class token:
-    def randomToken():
-        return secrets.token_urlsafe(16)
-    def set_token():
-        return token
+
+estado = Estado()
+current_token = estado.token  # Valor inicial
 
 server_port = 5000
 connected_devices = {}
@@ -24,6 +25,23 @@ if platform.system() == 'Darwin':
     keyboard = Controller()
 else:
     keyboard = None
+
+
+def randomToken():
+    return secrets.token_urlsafe(16)
+
+
+def update_token():
+    """Atualiza o token atual e retorna o novo valor."""
+    global current_token
+    estado.token = randomToken()
+    current_token = estado.token
+    return current_token
+
+
+def get_current_token():
+    """Retorna o token atual."""
+    return current_token
 
 
 def send_key(key):
@@ -55,15 +73,17 @@ def control():
     token = request.args.get('token')
     ip = request.remote_addr
 
-    if token != current_token:
+    if token != get_current_token():  # Usa a função para obter o token atual
         return "Token inválido ou expirado!", 403
 
+    update_device_activity(ip)
     return render_template_string('''
         <!DOCTYPE html>
-        <html>
+        <html lang="pt-br">
         <head>
+            <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Controle de Slides</title>
+            <title>piSlideControl - dimi(github.com/valeedimilson)</title>
             <style>
                 body {
                     margin: 0;
@@ -118,26 +138,18 @@ def control():
         </head>
         <body>
             <div class="control-container">
-                
                 <div class="btn-row">
                     <button class="btn btn-fs" onclick="fullscreen()">Tela Cheia (F5)</button>
-                    <button class="btn btn-exit" onclick="exitFullscreen2()">Sair (ESC)</button>
+                    <button class="btn btn-exit" onclick="exitFullscreen2()">Sair Tela Cheia(ESC)</button>
                 </div>
-                                  <div class="btn-row">
+                <div class="btn-row">
                     <button class="btn btn-prev" onclick="previousSlide()">← Anterior</button>
-                    <button class="btn btn-next" onclick="nextSlide()">Próximo →</button>
+                    <button class="btn btn-next" onclick='nextSlide()'>Próximo →</button>
                 </div>
             </div>
             <script>
                 const token = new URLSearchParams(window.location.search).get('token');
                 
-                function ping() {
-                    fetch(`/ping?token=${token}`, { method: 'POST' })
-                        .catch(err => console.log('Ping error:', err));
-                }
-                
-                // Envia ping a cada 30 segundos
-                setInterval(ping, 30000);
                 
                 function handleResponse(response) {
                     if (!response.ok) throw new Error('Erro na comunicação');
@@ -168,12 +180,6 @@ def control():
                         .catch(err => alert('Erro: ' + err));
                 }
                 
-                // Atualiza status a cada segundo
-                setInterval(() => {
-                    const now = new Date();
-                    document.getElementById('status').innerText = 
-                        `Conectado em: ${now.toLocaleTimeString()}`;
-                }, 1000);
             </script>
         </body>
         </html>
@@ -183,9 +189,8 @@ def control():
 @app.route('/next', methods=['POST'])
 def next_slide():
     ip = request.remote_addr
-
     token = request.args.get('token')
-    if token != current_token:
+    if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
 
     update_device_activity(ip)
@@ -196,9 +201,8 @@ def next_slide():
 @app.route('/previous', methods=['POST'])
 def previous_slide():
     ip = request.remote_addr
-
     token = request.args.get('token')
-    if token != current_token:
+    if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
 
     update_device_activity(ip)
@@ -209,9 +213,8 @@ def previous_slide():
 @app.route('/fullscreen', methods=['POST'])
 def fullscreen():
     ip = request.remote_addr
-
     token = request.args.get('token')
-    if token != current_token:
+    if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
 
     update_device_activity(ip)
@@ -225,9 +228,8 @@ def fullscreen():
 @app.route('/exit-fullscreen', methods=['POST'])
 def exit_fullscreen():
     ip = request.remote_addr
-
     token = request.args.get('token')
-    if token != current_token:
+    if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
 
     update_device_activity(ip)
@@ -236,6 +238,17 @@ def exit_fullscreen():
         return jsonify(success=True)
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
+
+
+@app.route('/ping', methods=['POST'])
+def ping():
+    ip = request.remote_addr
+    token = request.args.get('token')
+    if token != get_current_token():  # Usa a função para obter o token atual
+        return jsonify(success=False, error="Token inválido"), 403
+
+    update_device_activity(ip)
+    return jsonify(success=True)
 
 
 def run_server():

@@ -1,7 +1,15 @@
-Flask
-qrcode
-pyautogui
-pynput
-pillow
-kivy
-kivymd
+# Backend
+Flask>=2.0.0  
+
+# Automação e Interação  
+pyautogui  
+pynput  
+
+# Interface Gráfica  
+kivy>=2.0.0  
+kivymd>=1.2.0
+
+# Utilitários  
+qrcode  
+pillow   
+pyinstaller
