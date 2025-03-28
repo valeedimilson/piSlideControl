@@ -1,26 +1,25 @@
 from flask import Flask, request, jsonify,  render_template_string
 import secrets
 import pyautogui
+import ctypes
 from datetime import datetime
 from waitress import serve
+import random
 
 app = Flask(__name__)
-
 
 class Estado:
     def __init__(self):
         self.token = secrets.token_urlsafe(16)
-
+        self.port = random.randint(1000, 5000)
 
 estado = Estado()
-current_token = estado.token  # Valor inicial
-
-server_port = 5000
+current_token = estado.token 
+server_port = estado.port
 connected_devices = {}
 
 def randomToken():
     return secrets.token_urlsafe(16)
-
 
 def update_token():
     """Atualiza o token atual e retorna o novo valor."""
@@ -29,11 +28,9 @@ def update_token():
     current_token = estado.token
     return current_token
 
-
 def get_current_token():
     """Retorna o token atual."""
     return current_token
-
 
 def send_key(key):
     try:       
@@ -43,27 +40,29 @@ def send_key(key):
         print(f"Erro ao enviar tecla: {e}")
         return False
 
+def isBrowser(title):
+    browsers = ["google chrome", "mozilla firefox", "microsoft edge", "chrome", "firefox", "edge"]
+    title_lower = title.lower()
+    for browser in browsers:
+        if browser in title_lower:
+            return True
+    return False
 
-def update_device_activity(ip):
-    now = datetime.now()
-    if ip not in connected_devices:
-        connected_devices[ip] = {
-            'connection_time': now,
-            'last_active': now
-        }
-    else:
-        connected_devices[ip]['last_active'] = now
+def getWindowTitle():
+    user32 = ctypes.windll.user32
+    hwnd = user32.GetForegroundWindow()
+    length = user32.GetWindowTextLengthW(hwnd)
+    buffer = ctypes.create_unicode_buffer(length + 1)
+    user32.GetWindowTextW(hwnd, buffer, length + 1)
+
+    return buffer.value
 
 
 @app.route('/')
 def control():
-    token = request.args.get('token')
-    ip = request.remote_addr
-
+    token = request.args.get('token') 
     if token != get_current_token():  # Usa a função para obter o token atual
         return "Token inválido ou expirado!", 403
-
-    update_device_activity(ip)
     return render_template_string('''
         <!DOCTYPE html>
         <html lang="pt-br">
@@ -128,8 +127,8 @@ def control():
         <body>
             <div class="control-container">
                 <div class="btn-row">
-                    <button class="btn btn-fs" onclick="fullscreen()">Tela Cheia (F5)</button>
-                    <button class="btn btn-exit" onclick="exitFullscreen2()">Sair Tela Cheia(ESC)</button>
+                    <button class="btn btn-fs" onclick="fullscreen()">Slide em Tela Cheia</button>
+                    <button class="btn btn-exit" onclick="exitFullscreen2()">Sair Tela Cheia</button>
                 </div>
                 <div class="btn-row">
                     <button class="btn btn-prev" onclick="previousSlide()">← Anterior</button>
@@ -176,72 +175,60 @@ def control():
 
 
 @app.route('/next', methods=['POST'])
-def next_slide():
-    ip = request.remote_addr
+def next_slide():    
     token = request.args.get('token')
     if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
-
-    update_device_activity(ip)
     success = send_key('right') or send_key('space')
     return jsonify(success=success)
 
 
 @app.route('/previous', methods=['POST'])
-def previous_slide():
-    ip = request.remote_addr
+def previous_slide():    
     token = request.args.get('token')
     if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
-
-    update_device_activity(ip)
     success = send_key('left')
     return jsonify(success=success)
 
 
 @app.route('/fullscreen', methods=['POST'])
-def fullscreen():
-    ip = request.remote_addr
+def fullscreen():    
     token = request.args.get('token')
     if token != get_current_token():  # Usa a função para obter o token atual
-        return jsonify(success=False, error="Token inválido"), 403
-
-    update_device_activity(ip)
-    try:
-        pyautogui.press('f5')
-        return jsonify(success=True)
+        return jsonify(success=False, error="Token inválido"), 403  
+    try:        
+        
+        if(isBrowser(getWindowTitle())):
+            pyautogui.press('f11')
+            return jsonify(success=True)
+        
+        if(not isBrowser(getWindowTitle())):
+            pyautogui.press('f5')
+            return jsonify(success=True)
+        
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
 
 
 @app.route('/exit-fullscreen', methods=['POST'])
-def exit_fullscreen():
-    ip = request.remote_addr
+def exit_fullscreen():    
     token = request.args.get('token')
     if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
-
-    update_device_activity(ip)
     try:
-        pyautogui.press('esc')
-        return jsonify(success=True)
+        if(isBrowser(getWindowTitle())):
+            pyautogui.press('f11')
+            return jsonify(success=True)
+        
+        if(not isBrowser(getWindowTitle())):
+            pyautogui.press('esc')
+            return jsonify(success=True)
     except Exception as e:
         return jsonify(success=False, error=str(e)), 500
 
 
-@app.route('/ping', methods=['POST'])
-def ping():
-    ip = request.remote_addr
-    token = request.args.get('token')
-    if token != get_current_token():  # Usa a função para obter o token atual
-        return jsonify(success=False, error="Token inválido"), 403
-
-    update_device_activity(ip)
-    return jsonify(success=True)
-
-
 def run_server():
-    # app.run(host='0.0.0.0', port=server_port, debug=False)
     serve(app, host="0.0.0.0", port=server_port)
 
 

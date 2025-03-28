@@ -5,7 +5,7 @@ import threading
 import tkinter as tk
 from tkinter import Label, Button
 from PIL import Image, ImageTk
-from client_frontend import run_server, update_token, get_current_token
+from client_frontend import run_server, update_token, get_current_token, server_port
 
 class MainApp:
     def center_window(self, width=440, height=550):
@@ -18,7 +18,6 @@ class MainApp:
     def __init__(self, root):
         self.root = root
         self.root.title("piSlideControl by Dimi (github.com/valeedimilson)")
-        #self.root.iconbitmap("./icon.ico")
         self.root.configure(bg='black')
         self.root.geometry("440x550")
 
@@ -26,7 +25,9 @@ class MainApp:
 
         self.token = get_current_token()
         self.my_ip = self.get_local_ip()
-        
+
+        self.urlServer = f"http://{self.my_ip}:{server_port}/?token={self.token}"
+
         # Gerar QR Code inicial
         self.qr_path = self.generate_qr()
         
@@ -35,9 +36,11 @@ class MainApp:
         self.qr_label = Label(root, image=self.qr_image, bg='black')
         self.qr_label.pack(pady=10)
 
+        
+
         # Botão para abrir o link
         self.link_button = Button(
-            root, text=f"http://{self.my_ip}:5000?token={self.token}",
+            root, text= self.urlServer,
             fg='cyan', bg='black', borderwidth=0,
             command=self.open_link
         )
@@ -67,9 +70,8 @@ class MainApp:
             return "127.0.0.1"
 
     def generate_qr(self):
-        url = f"http://{self.my_ip}:5000/?token={self.token}"
         qr = qrcode.QRCode(version=1, box_size=10, border=4)
-        qr.add_data(url)
+        qr.add_data(self.urlServer)
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white")
         qr_path = "qrcode.png"
@@ -78,13 +80,14 @@ class MainApp:
 
     def generate_new_qr(self):
         self.token = update_token()
+        self.urlServer = f"http://{self.my_ip}:{server_port}/?token={self.token}"
         self.qr_path = self.generate_qr()
         self.qr_image = ImageTk.PhotoImage(Image.open(self.qr_path))
         self.qr_label.config(image=self.qr_image)
-        self.link_button.config(text=f"http://{self.my_ip}:5000/?token={self.token}")
+        self.link_button.config(text=self.urlServer)
 
     def open_link(self):
-        webbrowser.open(f"http://{self.my_ip}:5000?token={self.token}")
+        webbrowser.open(self.urlServer)
 
 if __name__ == "__main__":
     root = tk.Tk()
