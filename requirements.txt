@@ -4,3 +4,4 @@ PyAutoGUI==0.9.54
 pyinstaller==6.12.0
 qrcode==8.0
 waitress==3.0.2
+opencv-python==4.11.0.86

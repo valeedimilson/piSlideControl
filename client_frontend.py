@@ -5,13 +5,15 @@ import ctypes
 from datetime import datetime
 from waitress import serve
 import random
+import pytesseract
+from PIL import ImageGrab
 
 app = Flask(__name__)
 
 class Estado:
     def __init__(self):
-        self.token = secrets.token_urlsafe(16)
-        self.port = random.randint(1000, 5000)
+        self.token = "123456" #secrets.token_urlsafe(16)
+        self.port = 1000 #random.randint(1000, 5000)
 
 estado = Estado()
 current_token = estado.token 
@@ -19,7 +21,7 @@ server_port = estado.port
 connected_devices = {}
 
 def randomToken():
-    return secrets.token_urlsafe(16)
+    return "123456" #secrets.token_urlsafe(16)
 
 def update_token():
     """Atualiza o token atual e retorna o novo valor."""
@@ -39,6 +41,19 @@ def send_key(key):
     except Exception as e:
         print(f"Erro ao enviar tecla: {e}")
         return False
+    
+
+def detect_text_on_screen():
+    """Captura a tela e usa OCR para identificar texto relevante."""
+    screenshot = ImageGrab.grab()  # Captura a tela inteira
+    text = pytesseract.image_to_string(screenshot, lang="por")
+    print(text)
+    return text.lower()
+
+def isCanvaActive():
+    """Verifica se a palavra 'Canva' aparece na tela."""
+    screen_text = detect_text_on_screen()
+    return "Compartilhar" in screen_text
 
 def isBrowser(title):
     browsers = ["google chrome", "mozilla firefox", "microsoft edge", "chrome", "firefox", "edge"]
@@ -46,6 +61,12 @@ def isBrowser(title):
     for browser in browsers:
         if browser in title_lower:
             return True
+    return False
+
+def isSoftware(software, title):
+    title_lower = title.lower()
+    if software in title_lower:
+        return True
     return False
 
 def getWindowTitle():
@@ -80,9 +101,12 @@ def control():
                     touch-action: manipulation;
                 }
                 .control-container {
+                    position: fixed;
+                    bottom: 0px;
                     display: flex;
                     flex-direction: column;
-                    height: 100dvh;
+                    height: 50dvh;
+                    width: 100dvw;
                 }
                 .btn-row {
                     display: flex;
@@ -126,7 +150,7 @@ def control():
         </head>
         <body>
             <div class="control-container">
-                <div class="btn-row">
+                <div class="btn-row" style="display:none">
                     <button class="btn btn-fs" onclick="fullscreen()">Slide em Tela Cheia</button>
                     <button class="btn btn-exit" onclick="exitFullscreen2()">Sair Tela Cheia</button>
                 </div>
@@ -196,10 +220,16 @@ def previous_slide():
 def fullscreen():    
     token = request.args.get('token')
     if token != get_current_token():  # Usa a função para obter o token atual
-        return jsonify(success=False, error="Token inválido"), 403  
+        return jsonify(success=False, error="Token inválido"), 403      
+
     try:        
         
         if(isBrowser(getWindowTitle())):
+           
+            if(isSoftware("apresentações google", getWindowTitle())):
+                pyautogui.hotkey("ctrl","f5")
+                return jsonify(success=True)
+            
             pyautogui.press('f11')
             return jsonify(success=True)
         
@@ -217,11 +247,7 @@ def exit_fullscreen():
     if token != get_current_token():  # Usa a função para obter o token atual
         return jsonify(success=False, error="Token inválido"), 403
     try:
-        if(isBrowser(getWindowTitle())):
-            pyautogui.press('f11')
-            return jsonify(success=True)
-        
-        if(not isBrowser(getWindowTitle())):
+        if(isBrowser(getWindowTitle())):            
             pyautogui.press('esc')
             return jsonify(success=True)
     except Exception as e:
