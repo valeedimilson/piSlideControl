@@ -1,5 +1,6 @@
 import customtkinter as ctk
 from PIL import Image, ImageTk
+import webbrowser
 import qrcode
 import threading
 import time
@@ -53,7 +54,7 @@ class MainApp(ctk.CTk):
         self.my_ip = self.get_local_ip()
         
         # URL que o usuário vai acessar
-        self.user_site_url = f"{SITE_BASE_URL}/?sessionId={self.session_id}"
+        self.user_site_url = f"{SITE_BASE_URL}/control?sessionId={self.session_id}"
         
         self.stop_event = threading.Event()
 
@@ -99,15 +100,29 @@ class MainApp(ctk.CTk):
 
         # Botão para copiar link (Estilizado)
         self.copy_btn = ctk.CTkButton(self, text="Copiar Link", command=self.copy_link, fg_color="#2196f3", hover_color="#1976d2", font=("Arial", 14, "bold"), corner_radius=10)
-        self.copy_btn.pack(pady=15)
+        self.copy_btn.pack(pady=5)
 
         # Status
         self.status_label = ctk.CTkLabel(self, text="Iniciando ponte com o servidor...", font=("Arial", 14, "bold"), text_color="#f57c00")
         self.status_label.pack(pady=5)
 
+
+        # Botão/Link para a Landing Page (Estilo Hyperlink)
+        self.site_btn = ctk.CTkButton(
+            self, 
+            text="Visitar o site oficial", 
+            command=self.open_landing_page, 
+            fg_color="transparent", # Deixa sem fundo
+            text_color="#2196f3",   # Azul padrão do seu tema
+            hover_color="#ffcc80",  # Cor suave ao passar o mouse
+            font=("Arial", 12, "underline"),
+            cursor="hand2"          # Muda o mouse para a "mãozinha" de clique
+        )
+        self.site_btn.pack(pady=(0, 5))
+
         # Informativo no rodapé
         self.info_label = ctk.CTkLabel(self, text="Renovação automática: 55 min", font=("Arial", 11), text_color="#888888")
-        self.info_label.pack(side="bottom", pady=15)
+        self.info_label.pack(side="bottom", pady=5)
 
     def tunnel_lifecycle(self):
         while not self.stop_event.is_set():
@@ -184,6 +199,10 @@ class MainApp(ctk.CTk):
         self.update()
         self.copy_btn.configure(text="Copiado!", fg_color="#388e3c") # Fica verde ao copiar
         self.after(2000, lambda: self.copy_btn.configure(text="Copiar Link", fg_color="#2196f3"))
+
+    def open_landing_page(self):
+        """Abre a página inicial (Landing Page) no navegador padrão"""
+        webbrowser.open(SITE_BASE_URL)
 
     def get_local_ip(self):
         try:
