@@ -1,4 +1,5 @@
 from flask import Flask, request, jsonify,  render_template_string
+from flask_cors import CORS # Adicione isso
 import secrets
 import pyautogui
 import ctypes
@@ -8,6 +9,8 @@ import random
 from PIL import ImageGrab
 
 app = Flask(__name__)
+# Configuração robusta do CORS para aceitar conexões do Vercel e o header do Pinggy
+CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "X-Pinggy-No-Screen"])
 
 class Estado:
     def __init__(self):
