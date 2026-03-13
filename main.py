@@ -39,7 +39,7 @@ class MainApp(ctk.CTk):
 
         # Configurações da Janela
         self.title("PiSlideControl - Servidor")
-        self.geometry("400x750") # Aumentei a altura para caber tudo confortavelmente
+        self.geometry("400x650") # Aumentei a altura para caber tudo confortavelmente
         self.resizable(False, False)
 
         # --- Configuração do Ícone da Janela (Método Definitivo Windows) ---
@@ -83,36 +83,36 @@ class MainApp(ctk.CTk):
 
     def setup_ui(self):
         # Barra de Título Azul (Header)
-        self.header_frame = ctk.CTkFrame(self, fg_color="#2196f3", height=60, corner_radius=0)
+        self.header_frame = ctk.CTkFrame(self, fg_color="#2196f3", height=40, corner_radius=0)
         self.header_frame.pack(fill="x", side="top")
         self.header_frame.pack_propagate(False) # Impede que o frame encolha
 
         self.title_label = ctk.CTkLabel(self.header_frame, text="PiSlideControl v2.0", font=("Arial", 20, "bold"), text_color="white")
-        self.title_label.pack(side="left", padx=15, pady=15)
+        self.title_label.pack(side="left", padx=15, pady=5)
 
         # Logo do Patinho (Precisa ter o arquivo logo.png na pasta!)
         try:
             logo_path = resource_path("static/logo.jpg")
             if os.path.exists(logo_path):
                 logo_img = Image.open(logo_path)
-                self.logo_ctk = ctk.CTkImage(light_image=logo_img, dark_image=logo_img, size=(160, 190))
+                self.logo_ctk = ctk.CTkImage(light_image=logo_img, dark_image=logo_img, size=(100, 150))
                 self.logo_label = ctk.CTkLabel(self, image=self.logo_ctk, text="")
-                self.logo_label.pack(pady=(20, 10))
+                self.logo_label.pack(pady=(10, 2))
         except Exception as e:
             print("Aviso: logo.jpg não encontrado. A interface ficará sem o patinho.")
 
         # Textos com ID e Link
         self.id_label = ctk.CTkLabel(self, text=f"ID da Sessão: {self.session_id}", font=("Arial", 14, "bold"), text_color="#333333")
-        self.id_label.pack(pady=(0, 5))
+        self.id_label.pack(pady=(0, 2))
 
         # Espaço para o QR Code
         self.qr_label = ctk.CTkLabel(self, text="")
-        self.qr_label.pack(pady=5)
+        self.qr_label.pack(pady=2)
         self.update_qr_code()
 
          # Novo Label mostrando o Link
         self.link_label = ctk.CTkLabel(self, text=self.user_site_url, font=("Arial", 12), text_color="#2196f3")
-        self.link_label.pack(pady=(0, 10))
+        self.link_label.pack(pady=(0, 5))
 
         # Botão para copiar link (Estilizado)
         self.copy_btn = ctk.CTkButton(self, text="Copiar Link", command=self.copy_link, fg_color="#2196f3", hover_color="#1976d2", font=("Arial", 14, "bold"), corner_radius=10)
