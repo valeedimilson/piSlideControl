@@ -394,7 +394,7 @@ function copyPix(){
 
     <div class="controls">
       <div class="logo">
-        <img src="{{ url_for('static', filename='logo.svg') }}" width="250px" alt="Logo" />
+        <img src="{{ url_for('static', filename='logo.jpg') }}" width="250px" alt="Logo" />
       </div>
       <div class="buttons">
         <div>
