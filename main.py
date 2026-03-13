@@ -1,3 +1,4 @@
+import sys
 import customtkinter as ctk
 from PIL import Image, ImageTk
 import webbrowser
@@ -10,11 +11,26 @@ import socket
 import os
 import pinggy
 
+def resource_path(relative_path):
+    """Obtém o caminho absoluto para o recurso, funciona para dev e para o .exe"""
+    try:
+        # Quando roda pelo .exe (PyInstaller cria a pasta _MEIPASS)
+        base_path = sys._MEIPASS
+        # Como o PyInstaller solta a imagem na raiz, nós extraímos apenas o nome do arquivo
+        file_name = os.path.basename(relative_path)
+        return os.path.join(base_path, file_name)
+    except Exception:
+        # Quando roda pelo 'python main.py' (Modo Dev)
+        base_path = os.path.abspath(".")
+        # Aqui ele respeita a pasta 'static/' normalmente
+        return os.path.join(base_path, relative_path)
+
 # Importações do seu arquivo existente
 from client_frontend import run_server, update_token, get_current_token, server_port
 
 # Configurações da sua API e Site
-SITE_BASE_URL = "http://10.0.0.10:3000" # Mude para a URL da Vercel depois!
+#SITE_BASE_URL = "http://10.0.0.10:3000" 
+SITE_BASE_URL = "https://pi-slidecontrol-web.vercel.app"
 API_URL = f"{SITE_BASE_URL}/api/tunnel"
 
 class MainApp(ctk.CTk):
@@ -29,11 +45,11 @@ class MainApp(ctk.CTk):
         # --- Configuração do Ícone da Janela (Método Definitivo Windows) ---
         try:
             # Coloque aqui o nome da sua imagem (logo.png ou logo.jpg)
-            img_path = os.path.join(os.getcwd(), "static/logo.jpg") 
+            img_path = resource_path("static/logo.jpg") 
             
             if os.path.exists(img_path):
                 img = Image.open(img_path)
-                ico_path = os.path.join(os.getcwd(), "logo.ico")
+                ico_path = resource_path("static/logo.ico")
                 
                 # Salva uma cópia temporária como .ico (padrão do Windows)
                 img.save(ico_path, format="ICO", sizes=[(64, 64)])
@@ -76,7 +92,7 @@ class MainApp(ctk.CTk):
 
         # Logo do Patinho (Precisa ter o arquivo logo.png na pasta!)
         try:
-            logo_path = os.path.join(os.getcwd(), "static/logo.jpg")
+            logo_path = resource_path("static/logo.jpg")
             if os.path.exists(logo_path):
                 logo_img = Image.open(logo_path)
                 self.logo_ctk = ctk.CTkImage(light_image=logo_img, dark_image=logo_img, size=(160, 190))
