@@ -218,8 +218,138 @@ def control():
   </head>
   <body>
     <div class="title-bar">
-      <div class="title-text">PiSlideControl v1.0.2</div>
+      <div class="title-text">PiSlideControl v2.0</div>
       <div class="social-icons">
+      <div class="donate-wrapper">
+  <button class="donate-btn" onclick="openDonate()">☕</button>
+  <span class="tooltip">Me compre um café</span>
+</div>
+
+<div id="donateModal" class="modal-overlay">
+  <div class="modal">
+    <h2>💖 Apoie o projeto</h2>
+
+    <img id="pixQR">
+
+    <p>Chave Pix</p>
+
+    <div class="pix-box">
+      <input id="pixKey" readonly>
+    </div>
+
+    <button onclick="closeDonate()" class="close-btn">Fechar</button>
+  </div>
+</div>
+
+<style>
+.donate-wrapper{
+  position: fixed;
+  bottom: 20px;
+  left: 20px;
+}
+
+.donate-btn{
+  width:50px;
+  height:50px;
+  border-radius:50%;
+  border:none;
+  background:#ff813f;
+  font-size:22px;
+  color:white;
+  cursor:pointer;
+  transition:transform .2s;
+}
+
+.donate-btn:hover{
+  transform:scale(1.1);
+}
+
+.tooltip{
+  position:absolute;
+  left:60px;
+  top:50%;
+  transform:translateY(-50%);
+  background:#333;
+  color:white;
+  padding:6px 10px;
+  border-radius:6px;
+  font-size:14px;
+  opacity:0;
+  transition:opacity .2s;
+  white-space:nowrap;
+}
+
+.donate-wrapper:hover .tooltip{
+  opacity:1;
+}
+
+.modal-overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.5);
+  display:none;
+  justify-content:center;
+  align-items:center;
+}
+
+.modal{
+  background:white;
+  padding:25px;
+  border-radius:12px;
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  width:300px;
+}
+
+.pix-box{
+  display:flex;
+  gap:5px;
+  margin-top:10px;
+  text-align: center;
+}
+
+.pix-box input{
+  flex: 1;
+  padding: 6px;
+  border: 1px solid #000;
+  border-radius: 8px;
+  text-align: center;
+}
+.close-btn {
+  margin-top: 15px;
+  padding: 8px 14px;
+  border: none;
+  cursor: pointer;
+}
+.close-btn:hover {
+  background-color:#ff2020;
+  color:#fff;
+  border-radius:8px;
+}
+</style>
+
+<script>
+const pixKey = "pixdodyme@gmail.com";
+
+document.getElementById("pixKey").value = pixKey;
+
+document.getElementById("pixQR").src =
+`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${pixKey}`;
+
+function openDonate(){
+  document.getElementById("donateModal").style.display="flex";
+}
+
+function closeDonate(){
+  document.getElementById("donateModal").style.display="none";
+}
+
+function copyPix(){
+  navigator.clipboard.writeText(pixKey);
+  alert("Chave Pix copiada!");
+}
+</script>
         <a href="https://www.linkedin.com/in/valeedimilson" class="social-icon">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -236,7 +366,7 @@ def control():
             />
           </svg>
         </a>
-        <a href="https://github.com/valeedimilson/piSlideControl" class="social-icon">
+        <a href="https://github.com/valeedimilson/" class="social-icon">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -290,8 +420,8 @@ def control():
     <footer>
       By
       <a
-        href="https://github.com/valeedimilson/piSlideControl"
-        target="_blank">dimi (github.com/valeedimilson)</a
+        href="https://github.com/valeedimilson/"
+        target="_blank">dyme (github.com/valeedimilson)</a
       >
     </footer>
 
