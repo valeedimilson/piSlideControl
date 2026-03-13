@@ -142,6 +142,61 @@ class MainApp(ctk.CTk):
 
     def tunnel_lifecycle(self):
         while not self.stop_event.is_set():
+            
+            # --- 1. Verificação de Rede ---
+            if not self.check_internet():
+                print("[-] Sem acesso à internet. Aguardando...")
+                self.update_status_ui("Sem conexão com a Internet", "red")
+                if self.stop_event.wait(timeout=10): # Aguarda 10s antes de tentar de novo
+                    break
+                continue
+            
+            # --- 2. Verificação de Bloqueio (Firewall/OpenDNS) ---
+            if not self.check_pinggy_domain():
+                print("[-] Internet OK, mas o Pinggy está bloqueado pela rede.")
+                self.update_status_ui("Pinggy bloqueado (Firewall/DNS)", "red")
+                if self.stop_event.wait(timeout=10): # Aguarda 10s antes de tentar de novo
+                    break
+                continue
+
+            # --- 3. Conexão Pinggy ---
+            print("\n[+] Iniciando nova conexão Pinggy...")
+            self.update_status_ui("Conectando ao Pinggy...", "yellow")
+            
+            try:
+                self.pinggy_tunnel = pinggy.start_tunnel(forwardto=f"localhost:{server_port}")
+                urls = self.pinggy_tunnel.urls
+                
+                pinggy_url = None
+                if isinstance(urls, list):
+                    pinggy_url = next((u for u in urls if u.startswith("https://")), urls[0] if urls else None)
+                elif isinstance(urls, dict):
+                    pinggy_url = urls.get("https", str(urls))
+                else:
+                    pinggy_url = str(urls)
+
+                if pinggy_url:
+                    pinggy_url = pinggy_url.rstrip("/")
+                    full_local_url = f"{pinggy_url}/?token={self.token}"
+                    print(f"[+] Túnel criado: {full_local_url}")
+                    
+                    self.update_status_ui("Sincronizando com o Site...", "orange")
+                    self.send_to_api(full_local_url)
+                else:
+                    self.update_status_ui("Erro ao obter URL do Pinggy", "red")
+
+            except Exception as e:
+                self.update_status_ui("Erro na conexão Pinggy", "red")
+                print(f"Erro: {e}")
+
+            # Fica aguardando 55 minutos para renovar, ou até o sistema fechar
+            interrupted = self.stop_event.wait(timeout=55 * 60)
+            if interrupted:
+                break
+                
+            print("\n[*] 55 minutos se passaram. Renovando túnel...")
+            self.close_tunnel()
+        while not self.stop_event.is_set():
             print("\n[+] Iniciando nova conexão Pinggy...")
             self.update_status_ui("Conectando ao Pinggy...", "yellow")
             
@@ -219,6 +274,23 @@ class MainApp(ctk.CTk):
     def open_landing_page(self):
         """Abre a página inicial (Landing Page) no navegador padrão"""
         webbrowser.open(SITE_BASE_URL)
+
+    def check_internet(self):
+        """Verifica se há conexão geral com a internet alcançando o DNS do Google."""
+        try:
+            socket.create_connection(("8.8.8.8", 53), timeout=3)
+            return True
+        except OSError:
+            return False
+
+    def check_pinggy_domain(self):
+        """Verifica se o domínio principal do Pinggy está bloqueado na rede."""
+        try:
+            # Tenta conectar na porta HTTPS padrão do Pinggy
+            socket.create_connection(("pinggy.io", 443), timeout=3)
+            return True
+        except OSError:
+            return False
 
     def get_local_ip(self):
         try:
