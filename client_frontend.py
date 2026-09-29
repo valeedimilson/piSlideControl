@@ -13,7 +13,7 @@ app = Flask(__name__)
 # Configuração segura do CORS: restringe origens ao Vercel, túnel Pinggy e hosts locais
 ALLOWED_ORIGINS = [
     r"^https:\/\/pi-slidecontrol-web\.vercel\.app$",
-    r"^https:\/\/.*\.pinggy\.(link|io)$",
+    r"^https:\/\/.*\.pinggy\.(link|io|net)$",
     r"^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$",
 ]
 CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}}, allow_headers=["Content-Type", "X-Pinggy-No-Screen"])

@@ -196,9 +196,12 @@ class MainApp(ctk.CTk):
             if response.status_code == 200:
                 self.update_status_ui("Túnel Ativo e Sincronizado", "#388e3c") 
             else:
+                print(f"[-] Erro da API ({response.status_code}): {response.text}")
                 self.update_status_ui("Erro ao sincronizar com DB", "red")
         except Exception as e:
+            print(f"[-] Falha na requisição: {e}")
             self.update_status_ui("Falha de rede (API Offline)", "red")
+
 
     def update_status_ui(self, text, color):
         if color == "yellow": color = "#f57c00"
