@@ -1,16 +1,22 @@
-from flask import Flask, request, jsonify,  render_template_string
-from flask_cors import CORS # Adicione isso
+from flask import Flask, request, jsonify, render_template_string
+from flask_cors import CORS
 import secrets
 import pyautogui
 import ctypes
+import time
+import threading
 from datetime import datetime
 from waitress import serve
 import random
-from PIL import ImageGrab
 
 app = Flask(__name__)
-# Configuração robusta do CORS para aceitar conexões do Vercel e o header do Pinggy
-CORS(app, resources={r"/*": {"origins": "*"}}, allow_headers=["Content-Type", "X-Pinggy-No-Screen"])
+# Configuração segura do CORS: restringe origens ao Vercel, túnel Pinggy e hosts locais
+ALLOWED_ORIGINS = [
+    r"^https:\/\/pi-slidecontrol-web\.vercel\.app$",
+    r"^https:\/\/.*\.pinggy\.(link|io)$",
+    r"^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$",
+]
+CORS(app, resources={r"/*": {"origins": ALLOWED_ORIGINS}}, allow_headers=["Content-Type", "X-Pinggy-No-Screen"])
 
 class Estado:
     def __init__(self):
@@ -20,7 +26,30 @@ class Estado:
 estado = Estado()
 current_token = estado.token 
 server_port = estado.port
-connected_devices = {}
+
+# Controle de concorrência e limitação de taxa (Debounce)
+action_lock = threading.Lock()
+last_action_time = 0.0
+MIN_ACTION_INTERVAL = 0.25  # 250ms de intervalo mínimo entre comandos
+
+def can_execute_action():
+    """Garante intervalo mínimo entre execuções para evitar flooding/congelamento."""
+    global last_action_time
+    with action_lock:
+        now = time.time()
+        if now - last_action_time < MIN_ACTION_INTERVAL:
+            return False
+        last_action_time = now
+        return True
+
+def verify_token(token):
+    """Verificação em tempo constante contra timing attacks."""
+    if not token or not isinstance(token, str):
+        return False
+    current = get_current_token()
+    if not current or not isinstance(current, str):
+        return False
+    return secrets.compare_digest(token, current)
 
 def randomToken():
     return secrets.token_urlsafe(16)
@@ -72,19 +101,19 @@ def getWindowTitle():
 @app.route('/')
 def control():
     token = request.args.get('token') 
-    if token != get_current_token():  # Usa a função para obter o token atual
+    if not verify_token(token):
         return "Token inválido ou expirado!", 403
     return render_template_string('''
         <!DOCTYPE html>
 <html lang="pt-br">
   <head>
     <meta charset="UTF-8" />
+    <meta name="referrer" content="no-referrer" />
     <meta
       name="viewport"
       content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"
     />
     <title>PiSlideControl</title>
-    <script src="https://unpkg.com/axios/dist/axios.min.js"></script>
     <link rel="icon" href="data:," />
     <style>
       * {
@@ -350,7 +379,7 @@ function copyPix(){
   alert("Chave Pix copiada!");
 }
 </script>
-        <a href="https://www.linkedin.com/in/valeedimilson" class="social-icon">
+        <a href="https://www.linkedin.com/in/valeedimilson" class="social-icon" target="_blank" rel="noopener noreferrer">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             viewBox="0 0 24 24"
@@ -366,7 +395,7 @@ function copyPix(){
             />
           </svg>
         </a>
-        <a href="https://github.com/valeedimilson/" class="social-icon">
+        <a href="https://github.com/valeedimilson/" class="social-icon" target="_blank" rel="noopener noreferrer">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="24"
@@ -421,15 +450,19 @@ function copyPix(){
       By
       <a
         href="https://github.com/valeedimilson/"
-        target="_blank">dyme (github.com/valeedimilson)</a
+        target="_blank"
+        rel="noopener noreferrer">dyme (github.com/valeedimilson)</a
       >
     </footer>
 
     <script>
       const token = new URLSearchParams(window.location.search).get('token');
                 
-                
                 function handleResponse(response) {
+                    if (response.status === 429) {
+                        console.warn('Comando ignorado: intervalo muito rápido entre cliques.');
+                        return null;
+                    }
                     if (!response.ok) throw new Error('Erro na comunicação');
                     return response.json();
                 }
@@ -456,17 +489,21 @@ function copyPix(){
 @app.route('/next', methods=['POST'])
 def next_slide():    
     token = request.args.get('token')
-    if token != get_current_token():  # Usa a função para obter o token atual
+    if not verify_token(token):
         return jsonify(success=False, error="Token inválido"), 403
-    success = send_key('right') or send_key('space')
+    if not can_execute_action():
+        return jsonify(success=False, error="Muitas requisições em pouco tempo"), 429
+    success = send_key('right')
     return jsonify(success=success)
 
 
 @app.route('/previous', methods=['POST'])
 def previous_slide():    
     token = request.args.get('token')
-    if token != get_current_token():  # Usa a função para obter o token atual
+    if not verify_token(token):
         return jsonify(success=False, error="Token inválido"), 403
+    if not can_execute_action():
+        return jsonify(success=False, error="Muitas requisições em pouco tempo"), 429
     success = send_key('left')
     return jsonify(success=success)
 
@@ -474,39 +511,40 @@ def previous_slide():
 @app.route('/fullscreen', methods=['POST'])
 def fullscreen():    
     token = request.args.get('token')
-    if token != get_current_token():  # Usa a função para obter o token atual
+    if not verify_token(token):
         return jsonify(success=False, error="Token inválido"), 403      
+    if not can_execute_action():
+        return jsonify(success=False, error="Muitas requisições em pouco tempo"), 429
 
     try:        
-        
-        if(isBrowser(getWindowTitle())):
-           
-            if(isSoftware("apresentações google", getWindowTitle())):
-                pyautogui.hotkey("ctrl","f5")
+        title = getWindowTitle()
+        if isBrowser(title):
+            if isSoftware("apresentações google", title):
+                pyautogui.hotkey("ctrl", "f5")
                 return jsonify(success=True)
-            
             pyautogui.press('f11')
             return jsonify(success=True)
-        
-        if(not isBrowser(getWindowTitle())):
+        else:
             pyautogui.press('f5')
             return jsonify(success=True)
-        
     except Exception as e:
-        return jsonify(success=False, error=str(e)), 500
+        print(f"Erro ao alternar tela cheia: {e}")
+        return jsonify(success=False, error="Erro ao processar comando de tela cheia"), 500
 
 
 @app.route('/exit-fullscreen', methods=['POST'])
 def exit_fullscreen():    
     token = request.args.get('token')
-    if token != get_current_token():  # Usa a função para obter o token atual
+    if not verify_token(token):
         return jsonify(success=False, error="Token inválido"), 403
+    if not can_execute_action():
+        return jsonify(success=False, error="Muitas requisições em pouco tempo"), 429
     try:
-        if(isBrowser(getWindowTitle())):            
-            pyautogui.press('esc')
-            return jsonify(success=True)
+        pyautogui.press('esc')
+        return jsonify(success=True)
     except Exception as e:
-        return jsonify(success=False, error=str(e)), 500
+        print(f"Erro ao sair da tela cheia: {e}")
+        return jsonify(success=False, error="Erro ao processar comando de saída"), 500
 
 
 def run_server():

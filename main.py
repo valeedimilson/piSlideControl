@@ -6,7 +6,7 @@ import qrcode
 import threading
 import time
 import requests
-import uuid
+import secrets
 import socket
 import os
 import pinggy
@@ -32,7 +32,7 @@ class MainApp(ctk.CTk):
 
         # Configurações da Janela
         self.title("PiSlideControl - Servidor")
-        self.geometry("400x680") # Aumentado um pouco para acomodar o botão de seleção
+        self.geometry("500x690") # Aumentado um pouco para acomodar o botão de seleção
         self.resizable(False, False)
 
         try:
@@ -49,7 +49,7 @@ class MainApp(ctk.CTk):
 
         # Variáveis de Controle
         self.pinggy_tunnel = None
-        self.session_id = str(uuid.uuid4())[:8]
+        self.session_id = secrets.token_urlsafe(16)
         self.token = get_current_token()
         self.my_ip = self.get_local_ip()
         
@@ -85,7 +85,7 @@ class MainApp(ctk.CTk):
         except Exception as e:
             print("Aviso: logo.jpg não encontrado. A interface ficará sem o patinho.")
 
-        self.id_label = ctk.CTkLabel(self, text=f"ID da Sessão: {self.session_id}", font=("Arial", 14, "bold"), text_color="#333333")
+        self.id_label = ctk.CTkLabel(self, text=f"ID da Sessão: {self.session_id}", font=("Arial", 12, "bold"), text_color="#333333")
         self.id_label.pack(pady=(0, 2))
 
         # Seleção de Modo (Remoto vs Local)
@@ -212,11 +212,7 @@ class MainApp(ctk.CTk):
         qr.make(fit=True)
         img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
-        qr_path = os.path.join(os.getcwd(), "qrcode_site.png")
-        img.save(qr_path)
-
-        pil_img = Image.open(qr_path)
-        ctk_img = ctk.CTkImage(light_image=pil_img, dark_image=pil_img, size=(250, 250))
+        ctk_img = ctk.CTkImage(light_image=img, dark_image=img, size=(250, 250))
         self.qr_label.configure(image=ctk_img)
         self.qr_label.image = ctk_img
 
