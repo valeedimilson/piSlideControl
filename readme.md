@@ -60,8 +60,10 @@ Controle apresentações de slides remotamente via navegador ou dispositivo móv
 ## 📦 Build Executável
 Para criar uma versão standalone:
 ```bash
-pyinstaller --clean --onefile --noconsole --add-data "logo.ico;." --icon=logo.ico --name piSlideControl main.py
+pyinstaller --clean --onefile --noconsole --collect-all pinggy --add-data "logo.ico;." --add-data "static;static" --icon=logo.ico --name piSlideControl main.py
 ```
+*(Se preferir manter o terminal/console aberto para visualizar os logs de status em tempo real, basta remover a flag `--noconsole`)*.
+
 
 ## ⚠️ Notas Importantes
 - Mantenha o aplicativo de apresentação(power point, wps office, libre office) em primeiro plano durante o uso

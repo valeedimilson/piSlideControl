@@ -9,17 +9,28 @@ import requests
 import secrets
 import socket
 import os
+os.environ.setdefault("PINGGY_DL_NATIVE", "true")
 import pinggy
 
 def resource_path(relative_path):
     """Obtém o caminho absoluto para o recurso, funciona para dev e para o .exe"""
     try:
         base_path = sys._MEIPASS
-        file_name = os.path.basename(relative_path)
-        return os.path.join(base_path, file_name)
     except Exception:
         base_path = os.path.abspath(".")
-        return os.path.join(base_path, relative_path)
+
+    # Primeiro tenta o caminho relativo preservando subpastas (ex: static/logo.jpg)
+    full_path = os.path.join(base_path, relative_path)
+    if os.path.exists(full_path):
+        return full_path
+
+    # Fallback para caso o arquivo esteja na raiz do pacote
+    file_name = os.path.basename(relative_path)
+    flat_path = os.path.join(base_path, file_name)
+    if os.path.exists(flat_path):
+        return flat_path
+
+    return full_path
 
 from client_frontend import run_server, update_token, get_current_token, server_port
 
@@ -72,7 +83,7 @@ class MainApp(ctk.CTk):
         self.header_frame.pack(fill="x", side="top")
         self.header_frame.pack_propagate(False)
 
-        self.title_label = ctk.CTkLabel(self.header_frame, text="PiSlideControl v2.0", font=("Arial", 20, "bold"), text_color="white")
+        self.title_label = ctk.CTkLabel(self.header_frame, text="PiSlideControl v2.1", font=("Arial", 20, "bold"), text_color="white")
         self.title_label.pack(side="left", padx=15, pady=5)
 
         try:
